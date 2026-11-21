@@ -1,0 +1,183 @@
+# HALLUCINATION MIDDLEWARE TOOL v1
+# Author: Danny Nawa Muyunda
+# Copperbelt University, Zambia
+# =============================================================================
+
+import os
+import csv
+import re
+from datetime import datetime
+from groq import Groq
+
+
+# --- CONFIG ---
+API_KEY = "enter api key here"
+MODEL = "enter ai model here "
+
+# --- LAYERED PROMPT ---
+SYSTEM_PROMPT = """Answer only from established literature. 
+Before answering: reread the question three times, identify exactly 
+what is being asked and what domain it falls in, then confirm your 
+understanding of the question before answering. 
+
+Your confidence score must reflect: the knowledge gap on this topic, 
+the sufficiency of context provided, the strength of evidence available, 
+and the limits of your established knowledge on this specific subject. 
+State honestly where your knowledge ends. Do not estimate. 
+If uncertain say I don't know.
+
+If you have a verifiable source for your answer (a real journal, institution, 
+or document you are certain exists), include it at the end under SOURCE:
+If you do not have a verifiable source, do not invent one. Leave SOURCE: blank.
+
+Always end your response with exactly this format on the last two lines:
+SOURCE: [source here or leave blank]
+CONFIDENCE: XX/100
+
+Do not name specific authors, years, or journals unless you are 100% sure they exist."""
+
+# --- GROQ CLIENT ---
+client = Groq(api_key=API_KEY)
+
+# --- TOPIC DETECTOR ---
+def detect_topic(question):
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{
+            "role": "user",
+            "content": f"""Identify the domain of this question in one word.
+            Choose from: medicine, law, finance, bioenergy, agriculture, general
+            Question: {question}
+            Return only the domain word, nothing else."""
+        }],
+        max_tokens=10
+    )
+    return response.choices[0].message.content.strip().lower()
+
+# --- EXTRACT CONFIDENCE ---
+def extract_confidence(response_text):
+    match = re.search(r"CONFIDENCE:\s*(\d+)\s*/\s*100", response_text, re.IGNORECASE)
+    return int(match.group(1)) if match else 0
+
+# --- EXTRACT CITATION ---
+def extract_citation(response_text):
+    match = re.search(r"SOURCE:\s*(.+)", response_text, re.IGNORECASE)
+    if not match:
+        return None
+    citation = match.group(1).strip()
+    if not citation or citation.lower() in ["", "none", "n/a", "blank", "leave blank"]:
+        return None
+    return citation
+
+# --- CHECK IF CITATION IS SUBSTANTIAL ---
+def has_valid_citation(citation):
+    if not citation:
+        return False
+    patterns = [
+        r'\b(19|20)\d{2}\b',
+        r'\bet al\.?\b',
+        r'\bjournal\b',
+        r'\bwho\b|\bwho\.int\b',
+        r'\bfao\b',
+        r'\bipcc\b',
+        r'https?://',
+        r'\buniversity\b',
+        r'\binstitute\b',
+        r'\bpublished\b',
+        r'\bpress\b',
+    ]
+    for pattern in patterns:
+        if re.search(pattern, citation, re.IGNORECASE):
+            return True
+    return len(citation) > 10
+
+# --- DECIDE WHETHER TO ANSWER ---
+def decide(confidence, citation):
+    confident = confidence >= 75
+    cited = has_valid_citation(citation)
+    flagged = confidence < 70
+
+    if confident and cited:
+        return False, "none", flagged
+    elif confident and not cited:
+        return True, "confident but no citation", flagged
+    elif not confident and cited:
+        return True, "low confidence", flagged
+    else:
+        return True, "low confidence and no citation", flagged
+
+# --- LOG TO CSV ---
+def log_result(question, domain, confidence, citation, flagged, abstained, reason, answer):
+    file_exists = os.path.isfile('hallucination_log.csv')
+    with open('hallucination_log.csv', 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow([
+                'timestamp', 'domain', 'question',
+                'confidence', 'citation', 'flagged', 'abstained', 'abstain_reason', 'answer_preview'
+            ])
+        writer.writerow([
+            datetime.now().strftime('%Y-%m-%d %H:%M'),
+            domain,
+            question,
+            confidence,
+            citation if citation else "none",
+            flagged,
+            abstained,
+            reason,
+            "ABSTAINED" if abstained else answer[:100]
+        ])
+
+# --- MAIN FUNCTION ---
+def ask(question):
+    print(f"\n{'='*60}")
+    print(f"QUESTION: {question}")
+    print('='*60)
+
+    domain = detect_topic(question)
+    print(f"Domain detected: {domain}")
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": question}
+        ],
+        max_tokens=2048
+    )
+
+    answer = response.choices[0].message.content
+
+    confidence = extract_confidence(answer)
+    citation = extract_citation(answer)
+    abstained, reason, flagged = decide(confidence, citation)
+
+    log_result(question, domain, confidence, citation, flagged, abstained, reason, answer)
+
+    print(f"\nDomain: {domain}")
+    print(f"Confidence: {confidence}/100")
+    print(f"Citation: {citation if citation else 'none'}")
+
+    if abstained:
+        print(f"\nABSTAINED — {reason}")
+        print("The tool could not verify this answer. Please consult a reliable source.")
+    else:
+        print(f"\nANSWER:\n{answer}")
+
+    print('='*60)
+
+    return answer, confidence, flagged, abstained, reason
+
+# --- RUN ---
+if __name__ == "__main__":
+    print("HALLUCINATION MIDDLEWARE TOOL v2")
+    print("Danny Nawa Muyunda — Copperbelt University")
+    print("Type 'exit' to stop\n")
+
+    while True:
+        question = input("Ask a question: ").strip()
+        if question.lower() == 'exit':
+            print("Session ended. Results saved to hallucination_log.csv")
+            break
+        if question:
+            ask(question)
