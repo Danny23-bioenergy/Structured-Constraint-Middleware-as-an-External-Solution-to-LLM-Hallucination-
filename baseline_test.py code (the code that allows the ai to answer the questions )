@@ -1,0 +1,61 @@
+import csv
+import time
+from datasets import load_dataset
+from groq import Groq
+
+# --- CONFIG ---
+API_KEY = "add your api key here"
+MODEL = "openai/gpt-oss-20b"
+
+client = Groq(api_key=API_KEY)
+
+official_questions = []
+
+# 1. Load the exact same 50 TruthfulQA questions (Indices 20 to 70)
+print("Loading 50 official TruthfulQA questions for RAW baseline...")
+tqa = load_dataset("truthful_qa", "generation", split="validation")
+for item in tqa.select(range(20, 70)):
+    official_questions.append((
+        "TruthfulQA (Oxford/OpenAI)",
+        item["category"],
+        item["question"],
+        item["best_answer"]
+    ))
+
+# 2. Load the exact same 50 HaluEval QA questions (Indices 0 to 50)
+print("Loading 50 official HaluEval questions for RAW baseline...")
+halu = load_dataset("pminervini/HaluEval", "qa_samples", split="data")
+for item in halu.select(range(50)):
+    official_questions.append((
+        "HaluEval (Academic Benchmark)",
+        "QA Factuality",
+        item["question"],
+        item["answer"]
+    ))
+
+# --- RUN THE 100-QUESTION RAW BASELINE ---
+report_file = "baseline_100_raw_results.csv"
+with open(report_file, "w", newline="", encoding="utf-8") as f:
+    writer = csv.writer(f)
+    writer.writerow(["id", "benchmark_source", "sub_category", "question", "ground_truth", "raw_ai_answer"])
+
+    for i, (source, subcat, question, truth) in enumerate(official_questions):
+        print(f"Running RAW AI [{i+1}/{len(official_questions)}] {source}...")
+        try:
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "user", "content": question}],
+                max_tokens=2048,
+                temperature=0.0
+            )
+            raw_answer = response.choices[0].message.content
+            writer.writerow([i + 1, source, subcat, question, truth, raw_answer.replace("\n", " ")])
+            f.flush()
+        except Exception as e:
+            print(f"API pause on question {i+1}: {e}. Waiting 10s...")
+            writer.writerow([i + 1, source, subcat, question, truth, f"ERROR: {e}"])
+            time.sleep(10)
+
+        time.sleep(3)
+
+print(f"\n100-question RAW baseline complete! Saved to {report_file}")
