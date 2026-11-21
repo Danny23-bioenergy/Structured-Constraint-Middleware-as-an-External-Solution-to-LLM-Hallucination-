@@ -1,0 +1,57 @@
+import csv
+import time
+from datasets import load_dataset
+from middleware import ask
+
+official_questions = []
+
+# 1. Load 50 unseen official TruthfulQA questions (Indices 20 to 70)
+print("Loading 50 official TruthfulQA questions...")
+tqa = load_dataset("truthful_qa", "generation", split="validation")
+for item in tqa.select(range(20, 70)):
+    official_questions.append((
+        "TruthfulQA (Oxford/OpenAI)",
+        item["category"],
+        item["question"],
+        item["best_answer"]
+    ))
+
+# 2. Load 50 official HaluEval QA questions (Indices 0 to 50)
+print("Loading 50 official HaluEval questions...")
+halu = load_dataset("pminervini/HaluEval", "qa_samples", split="data")
+for item in halu.select(range(50)):
+    official_questions.append((
+        "HaluEval (Academic Benchmark)",
+        "QA Factuality",
+        item["question"],
+        item["answer"]
+    ))
+
+# --- RUN THE 100-QUESTION OFFICIAL BENCHMARK ---
+report_file = "official_100_results.csv"
+with open(report_file, "w", newline="", encoding="utf-8") as f:
+    writer = csv.writer(f)
+    writer.writerow([
+        "id", "benchmark_source", "sub_category", "question",
+        "ground_truth", "model_answer", "confidence", "flagged", "abstained", "abstain_reason"
+    ])
+
+    for i, (source, subcat, question, truth) in enumerate(official_questions):
+        print(f"\n[{i+1}/{len(official_questions)}] {source} — {subcat}")
+        try:
+            answer, confidence, flagged, abstained, reason = ask(question)
+
+            writer.writerow([
+                i + 1, source, subcat, question, truth,
+                answer.replace("\n", " "), confidence, flagged, abstained, reason
+            ])
+            f.flush()
+        except Exception as e:
+            print(f"API pause on question {i+1}: {e}. Waiting 10s...")
+            writer.writerow([i + 1, source, subcat, question, truth, f"ERROR: {e}", 0, True, False, "error"])
+            time.sleep(10)
+
+        time.sleep(3)
+
+print(f"\n100-question official benchmark complete! Saved to {report_file}")
+
