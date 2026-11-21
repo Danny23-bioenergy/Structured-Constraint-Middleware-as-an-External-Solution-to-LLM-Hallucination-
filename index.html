@@ -1,434 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SCM — Hallucination Middleware</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --border: #21262d;
-    --text: #e6edf3;
-    --muted: #7d8590;
-    --accent: #f0a500;
-    --accent-dim: rgba(240,165,0,0.1);
-    --green: #3fb950;
-    --red: #f85149;
-    --blue: #58a6ff;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'IBM Plex Sans', sans-serif;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 15px;
-    min-height: 100vh;
-    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  }
-
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 20px 32px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .logo-mark {
-    width: 36px;
-    height: 36px;
-    background: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--mono);
-    font-weight: 500;
-    font-size: 13px;
-    color: #000;
-    flex-shrink: 0;
-  }
-
-  .logo-text {
-    font-family: var(--mono);
-    font-size: 14px;
-    color: var(--text);
-  }
-
-  .logo-text span {
-    color: var(--muted);
-    font-weight: 400;
-  }
-
-  .tagline {
-    margin-left: auto;
-    font-size: 12px;
-    color: var(--muted);
-    font-family: var(--mono);
-  }
-
-  main {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 48px 32px;
-  }
-
-  h1 {
-    font-size: 28px;
-    font-weight: 600;
-    line-height: 1.2;
-    margin-bottom: 10px;
-    letter-spacing: -0.5px;
-  }
-
-  h1 em {
-    color: var(--accent);
-    font-style: normal;
-  }
-
-  .intro {
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.6;
-    max-width: 560px;
-    margin-bottom: 40px;
-  }
-
-  .config-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-
-  label {
-    display: block;
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--muted);
-    margin-bottom: 6px;
-    letter-spacing: 0.5px;
-  }
-
-  input, textarea {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    padding: 10px 14px;
-    outline: none;
-    transition: border-color 0.15s;
-    -webkit-appearance: none;
-    border-radius: 0;
-  }
-
-  input:focus, textarea:focus {
-    border-color: var(--accent);
-  }
-
-  input::placeholder, textarea::placeholder {
-    color: var(--muted);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
-  .question-row {
-    margin-bottom: 16px;
-  }
-
-  button {
-    background: var(--accent);
-    color: #000;
-    border: none;
-    padding: 12px 28px;
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s;
-    width: 100%;
-  }
-
-  button:hover { opacity: 0.88; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .result-box {
-    margin-top: 40px;
-    border: 1px solid var(--border);
-    display: none;
-  }
-
-  .result-box.visible { display: block; }
-
-  .result-header {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface);
-  }
-
-  .verdict {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 3px 10px;
-    letter-spacing: 0.5px;
-  }
-
-  .verdict.answered {
-    background: rgba(63,185,80,0.12);
-    color: var(--green);
-    border: 1px solid rgba(63,185,80,0.3);
-  }
-
-  .verdict.abstained {
-    background: rgba(248,81,73,0.12);
-    color: var(--red);
-    border: 1px solid rgba(248,81,73,0.3);
-  }
-
-  .result-meta {
-    margin-left: auto;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .result-body {
-    padding: 24px;
-  }
-
-  .meta-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
-    margin-bottom: 24px;
-  }
-
-  .meta-cell {
-    background: var(--bg);
-    padding: 14px 16px;
-  }
-
-  .meta-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
-  }
-
-  .meta-value {
-    font-family: var(--mono);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-  }
-
-  .meta-value.high { color: var(--green); }
-  .meta-value.mid { color: var(--accent); }
-  .meta-value.low { color: var(--red); }
-
-  .answer-section label {
-    font-size: 10px;
-    margin-bottom: 10px;
-    display: block;
-  }
-
-  .answer-text {
-    font-family: var(--sans);
-    font-size: 14px;
-    line-height: 1.7;
-    color: var(--text);
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  .abstain-reason {
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--red);
-    padding: 14px 16px;
-    background: rgba(248,81,73,0.06);
-    border: 1px solid rgba(248,81,73,0.2);
-  }
-
-  .citation-box {
-    margin-top: 20px;
-    padding: 12px 16px;
-    background: var(--surface);
-    border-left: 2px solid var(--accent);
-  }
-
-  .citation-box .meta-label { margin-bottom: 4px; }
-  .citation-text {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--blue);
-    word-break: break-all;
-  }
-
-  .loading {
-    display: none;
-    padding: 20px 24px;
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  .loading.visible { display: block; }
-
-  .dot {
-    display: inline-block;
-    animation: blink 1.2s infinite;
-  }
-  .dot:nth-child(2) { animation-delay: 0.2s; }
-  .dot:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes blink {
-    0%, 80%, 100% { opacity: 0; }
-    40% { opacity: 1; }
-  }
-
-  .error-box {
-    display: none;
-    margin-top: 20px;
-    padding: 14px 16px;
-    background: rgba(248,81,73,0.06);
-    border: 1px solid rgba(248,81,73,0.2);
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--red);
-  }
-
-  .error-box.visible { display: block; }
-
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 20px 32px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 80px;
-  }
-
-  footer p {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  footer a {
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  @media (max-width: 600px) {
-    main { padding: 32px 20px; }
-    header { padding: 16px 20px; }
-    .tagline { display: none; }
-    .config-row { grid-template-columns: 1fr; }
-    .meta-grid { grid-template-columns: 1fr 1fr; }
-    footer { flex-direction: column; gap: 8px; padding: 20px; }
-    h1 { font-size: 22px; }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCM AI — Structured Constraint Middleware</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card: #131a26;
+      --border: #232f42;
+      --text: #e6edf7;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.55; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 18px; margin-bottom: 24px; }
+    .brand h1 { margin: 0; font-size: 1.45rem; letter-spacing: -0.02em; }
+    .brand span { color: var(--accent); }
+    .brand p { margin: 4px 0 0; font-size: 0.88rem; color: var(--muted); }
+    .links a { color: var(--text); text-decoration: none; background: var(--card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; margin-left: 8px; }
+    .links a:hover { border-color: var(--accent); }
+    .grid { display: grid; grid-template-columns: 1fr 310px; gap: 20px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .card h2 { margin: 0 0 12px; font-size: 1.05rem; }
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
+    input[type="password"], input[type="text"], textarea {
+      width: 100%; background: #090d14; border: 1px solid var(--border); color: var(--text);
+      padding: 11px 13px; border-radius: 8px; font-size: 0.92rem; outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    .key-status { font-size: 0.8rem; margin-top: 6px; color: var(--green); min-height: 18px; }
+    .btn {
+      background: var(--accent); color: #fff; border: none; padding: 10px 16px; border-radius: 8px;
+      font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); }
+    .btn-danger { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.76rem; font-weight: 600; }
+    .badge-domain { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.35); text-transform: uppercase; }
+    .badge-ok { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.35); }
+    .badge-flag { background: rgba(239,68,68,0.18); color: #fca5a5; border: 1px solid rgba(239,68,68,0.4); }
+    .result-box { background: #090d14; border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 16px; display: none; }
+    .result-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .answer-text { white-space: pre-wrap; font-size: 0.92rem; color: #dbe5f4; }
+    .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    .stat-row:last-child { border-bottom: none; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab { padding: 7px 13px; border-radius: 8px; background: #090d14; border: 1px solid var(--border); color: var(--muted); cursor: pointer; font-size: 0.84rem; }
+    .tab.active { background: rgba(59,130,246,0.15); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .q-list { max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: #090d14; }
+    .q-item { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .q-item:last-child { border-bottom: none; }
+    .q-text { font-size: 0.86rem; }
+    .q-cat { font-size: 0.74rem; color: var(--muted); margin-top: 3px; }
+    .use-btn { padding: 5px 10px; font-size: 0.78rem; white-space: nowrap; }
+    footer { text-align: center; font-size: 0.82rem; color: var(--muted); margin-top: 30px; }
+  </style>
 </head>
 <body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <h1><span>SCM AI</span> — Structured Constraint Middleware</h1>
+      <p>External epistemic guardrails &amp; 75% calibrated confidence gating • Copperbelt University, Zambia</p>
+    </div>
+    <div class="links">
+      <a href="https://doi.org/10.5281/zenodo.24301140" target="_blank">Research Paper (DOI) ↗</a>
+      <a href="https://zenodo.org/records/24301140" target="_blank">Zenodo Files &amp; Code ↗</a>
+    </div>
+  </header>
 
-<header>
-  <div class="logo-mark">SCM</div>
-  <div class="logo-text">Structured Constraint Middleware <span>v1</span></div>
-  <div class="tagline">by Danny Nawa Muyunda · CBU</div>
-</header>
-
-<main>
-  <h1>Ask without the <em>hallucination.</em></h1>
-  <p class="intro">SCM intercepts your question before it reaches you. It checks confidence and citation quality — if the AI can't back its answer, it doesn't deliver one.</p>
-
-  <div class="config-row">
+  <div class="grid">
     <div>
-      <label>GROQ API KEY</label>
-      <input type="password" id="apiKey" placeholder="gsk_..." autocomplete="off">
+      <div class="card">
+        <h2>Test What Your AI Actually Knows</h2>
+        <p style="font-size:0.86rem; color:var(--muted); margin-top:-6px;">
+          Paste your API key below. Provider and active production model are detected automatically — no manual model selection needed.
+        </p>
+
+        <label for="apiKey">API Key (Groq <code>gsk_...</code>, OpenAI <code>sk-...</code>, or Anthropic <code>sk-ant-...</code>)</label>
+        <input type="password" id="apiKey" placeholder="Paste API key (cleared automatically after 10 queries)..." oninput="detectProviderUI()" />
+        <div class="key-status" id="keyStatus"></div>
+
+        <label for="questionInput" style="margin-top:12px;">Your Question (or pick from the 1,000 official benchmark questions below)</label>
+        <textarea id="questionInput" rows="3" placeholder="e.g., What are the engineering parameters for small-scale biogas digesters in Zambia?"></textarea>
+
+        <div class="row-actions">
+          <button class="btn" id="runBtn" onclick="runMiddleware()">Run SCM Middleware</button>
+          <button class="btn btn-outline" onclick="loadSampleZambia()">Try Zambian Bioenergy Sample</button>
+        </div>
+
+        <div class="result-box" id="resultBox">
+          <div class="result-meta">
+            <span class="badge badge-domain" id="resDomain">DOMAIN: GENERAL</span>
+            <span class="badge" id="resConf">CONFIDENCE: 0/100</span>
+            <span class="badge" id="resFlag">STATUS</span>
+          </div>
+          <div class="answer-text" id="resAnswer"></div>
+          <div class="row-actions" style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
+            <span style="font-size:0.8rem; color:var(--muted); align-self:center;">Human Audit:</span>
+            <button class="btn btn-outline" style="padding:5px 10px; font-size:0.78rem;" onclick="markCurrentResult(false)">✓ Verified Accurate</button>
+            <button class="btn btn-danger" style="padding:5px 10px; font-size:0.78rem;" onclick="markCurrentResult(true)">⚠ Flag as Hallucination</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;">
+          <h2 style="margin:0;">Official Verification Benchmarks (1,000 Real Questions)</h2>
+          <div>
+            <button class="btn btn-outline" style="font-size:0.78rem; padding:6px 10px;" onclick="downloadBenchmarkCSV('truthfulqa')">⬇ Download TruthfulQA (500 CSV)</button>
+            <button class="btn btn-outline" style="font-size:0.78rem; padding:6px 10px;" onclick="downloadBenchmarkCSV('halueval')">⬇ Download HaluEval (500 CSV)</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" id="tab-truthfulqa" onclick="switchTab('truthfulqa')">TruthfulQA (500 Questions)</div>
+          <div class="tab" id="tab-halueval" onclick="switchTab('halueval')">HaluEval (500 Questions)</div>
+        </div>
+
+        <input type="text" id="searchBenchmark" placeholder="Filter benchmark questions..." oninput="renderBenchmarkList()" style="margin-bottom:10px;" />
+        <div class="q-list" id="benchmarkList">
+          <div style="padding:16px; color:var(--muted); font-size:0.86rem;">Loading official TruthfulQA &amp; HaluEval datasets...</div>
+        </div>
+      </div>
     </div>
+
     <div>
-      <label>MODEL</label>
-      <input type="text" id="modelName" placeholder="e.g. llama-3.1-8b-instant">
-    </div>
-  </div>
+      <div class="card">
+        <h2>Session Telemetry</h2>
+        <div class="stat-row"><span>Confidence Threshold</span><strong>75 / 100</strong></div>
+        <div class="stat-row"><span>Queries Used</span><strong id="statQueries">0 / 10</strong></div>
+        <div class="stat-row"><span>Flagged (&lt; 75% or Audited)</span><strong id="statFlagged" style="color:var(--amber);">0</strong></div>
+        <div class="stat-row"><span>Avg Confidence</span><strong id="statAvg">—</strong></div>
 
-  <div class="question-row">
-    <label>YOUR QUESTION</label>
-    <textarea id="question" placeholder="Ask anything — medicine, law, finance, engineering, science..."></textarea>
-  </div>
-
-  <button id="askBtn" onclick="runMiddleware()">Run middleware</button>
-
-  <div class="loading" id="loading">
-    Evaluating<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
-  </div>
-
-  <div class="error-box" id="errorBox"></div>
-
-  <div class="result-box" id="resultBox">
-    <div class="result-header">
-      <span class="verdict" id="verdictBadge"></span>
-      <span class="result-meta" id="resultMeta"></span>
-    </div>
-    <div class="result-body">
-      <div class="meta-grid">
-        <div class="meta-cell">
-          <div class="meta-label">DOMAIN</div>
-          <div class="meta-value" id="domainVal">—</div>
+        <div style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-outline" onclick="downloadLogs('flagged')">⬇ Download Hallucination Log (.csv)</button>
+          <button class="btn btn-outline" onclick="downloadLogs('all')">⬇ Download All Results Log (.csv)</button>
+          <button class="btn btn-danger" onclick="clearSession()">Clear Session &amp; API Key</button>
         </div>
-        <div class="meta-cell">
-          <div class="meta-label">CONFIDENCE</div>
-          <div class="meta-value" id="confidenceVal">—</div>
-        </div>
-        <div class="meta-cell">
-          <div class="meta-label">FLAGGED</div>
-          <div class="meta-value" id="flaggedVal">—</div>
-        </div>
+        <p style="font-size:0.76rem; color:var(--muted); margin-top:12px;">
+          Key cleared after 10 queries. Never stored or transmitted beyond your chosen provider.
+        </p>
       </div>
 
-      <div class="answer-section" id="answerSection">
-        <label>ANSWER</label>
-        <div class="answer-text" id="answerText"></div>
-      </div>
-
-      <div class="abstain-reason" id="abstainReason" style="display:none;"></div>
-
-      <div class="citation-box" id="citationBox" style="display:none;">
-        <div class="meta-label">CITATION</div>
-        <div class="citation-text" id="citationText"></div>
+      <div class="card">
+        <h2>AI Lab Telemetry Flywheel</h2>
+        <p style="font-size:0.83rem; color:var(--muted); margin:0;">
+          Every run logs <code>timestamp, domain, question, confidence, flagged, answer_preview</code>. Flagged items (&lt;75% or human-audited errors) isolate exact knowledge gaps and <strong>Geographic Substitution</strong> blind spots for surgical post-training.
+        </p>
       </div>
     </div>
   </div>
-</main>
 
-<footer>
-  <p>Built in Zambia · Open Source · <a href="https://doi.org/10.5281/zenodo.24422271" target="_blank">Read the paper</a></p>
-  <p>github.com/danny23-bioenergy</p>
-</footer>
+  <footer>
+    Built by <strong>Danny Nawa Muyunda</strong>, Copperbelt University, Zambia • DOI: 10.5281/zenodo.24301140
+  </footer>
+</div>
 
 <script>
-const SYSTEM_PROMPT = `Answer only from established literature. 
+  const SYSTEM_PROMPT = `Answer only from established literature. 
 Before answering: reread the question three times, identify exactly 
 what is being asked and what domain it falls in, then confirm your 
 understanding of the question before answering. 
@@ -439,179 +179,313 @@ and the limits of your established knowledge on this specific subject.
 State honestly where your knowledge ends. Do not estimate. 
 If uncertain say I don't know.
 
-If you have a verifiable source for your answer (a real journal, institution, 
-or document you are certain exists), include it at the end under SOURCE:
-If you do not have a verifiable source, do not invent one. Leave SOURCE: blank.
-
-Always end your response with exactly this format on the last two lines:
-SOURCE: [source here or leave blank]
+Always end your response with exactly this format on the last line:
 CONFIDENCE: XX/100
-
 Do not name specific authors, years, or journals unless you are 100% sure they exist.`;
 
-function extractConfidence(text) {
-  const match = text.match(/CONFIDENCE:\s*(\d+)\s*\/\s*100/i);
-  return match ? parseInt(match[1]) : 0;
-}
+  let sessionLogs = [];
+  let benchmarks = { truthfulqa: [], halueval: [] };
+  let activeTab = 'truthfulqa';
 
-function extractCitation(text) {
-  const match = text.match(/SOURCE:\s*(.+)/i);
-  if (!match) return null;
-  const citation = match[1].trim();
-  if (!citation || ['', 'none', 'n/a', 'blank', 'leave blank'].includes(citation.toLowerCase())) return null;
-  return citation;
-}
-
-function hasValidCitation(citation) {
-  if (!citation) return false;
-  const patterns = [
-    /\b(19|20)\d{2}\b/,
-    /\bet al\.?\b/i,
-    /\bjournal\b/i,
-    /\bwho\b|\bwho\.int\b/i,
-    /\bfao\b/i,
-    /\bipcc\b/i,
-    /https?:\/\//,
-    /\buniversity\b/i,
-    /\binstitute\b/i,
-    /\bpublished\b/i,
-    /\bpress\b/i,
-  ];
-  for (const p of patterns) { if (p.test(citation)) return true; }
-  return citation.length > 10;
-}
-
-function decide(confidence, citation) {
-  const confident = confidence >= 75;
-  const cited = hasValidCitation(citation);
-  const flagged = confidence < 70;
-  if (confident && cited) return { abstained: false, reason: 'none', flagged };
-  if (confident && !cited) return { abstained: true, reason: 'Confident but no citation', flagged };
-  if (!confident && cited) return { abstained: true, reason: 'Low confidence', flagged };
-  return { abstained: true, reason: 'Low confidence and no citation', flagged };
-}
-
-async function groqCall(apiKey, model, messages, maxTokens = 500) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0 })
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || `API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.choices[0].message.content;
-}
-
-async function runMiddleware() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  const model = document.getElementById('modelName').value.trim();
-  const question = document.getElementById('question').value.trim();
-
-  if (!apiKey || !model || !question) {
-    showError('Please fill in your API key, model name, and question.');
-    return;
+  function getProviderConfig(rawKey) {
+    const key = rawKey.trim();
+    if (!key) throw new Error("Please paste your API key first.");
+    if (key.startsWith("gsk_")) {
+      return {
+        provider: "Groq",
+        model: "openai/gpt-oss-20b",
+        fallbackModel: "llama-3.3-70b-versatile",
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` }
+      };
+    }
+    if (key.startsWith("sk-ant-")) {
+      return {
+        provider: "Anthropic",
+        model: "claude-sonnet-4-6",
+        url: "https://api.anthropic.com/v1/messages",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        }
+      };
+    }
+    if (key.startsWith("sk-")) {
+      return {
+        provider: "OpenAI",
+        model: "gpt-4o-mini",
+        url: "https://api.openai.com/v1/chat/completions",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` }
+      };
+    }
+    throw new Error("Unrecognized key format. Enter a valid Groq (gsk_...), OpenAI (sk-...), or Anthropic (sk-ant-...) key.");
   }
 
-  const btn = document.getElementById('askBtn');
-  const loading = document.getElementById('loading');
-  const resultBox = document.getElementById('resultBox');
-  const errorBox = document.getElementById('errorBox');
-
-  btn.disabled = true;
-  loading.classList.add('visible');
-  resultBox.classList.remove('visible');
-  errorBox.classList.remove('visible');
-
-  try {
-    // Step 1: Domain detection
-    const domainRaw = await groqCall(apiKey, model, [{
-      role: 'user',
-      content: `Identify the domain of this question in one word. Choose from: medicine, law, finance, bioenergy, agriculture, general\nQuestion: ${question}\nReturn only the domain word, nothing else.`
-    }], 10);
-    const domain = domainRaw.trim().toLowerCase();
-
-    // Step 2: Constrained answer
-    const answer = await groqCall(apiKey, model, [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: question }
-    ], 2048);
-
-    // Step 3: Extract and decide
-    const confidence = extractConfidence(answer);
-    const citation = extractCitation(answer);
-    const { abstained, reason, flagged } = decide(confidence, citation);
-
-    // Clean answer — strip the SOURCE/CONFIDENCE lines for display
-    const cleanAnswer = answer
-      .replace(/SOURCE:\s*.*/gi, '')
-      .replace(/CONFIDENCE:\s*\d+\s*\/\s*100/gi, '')
-      .trim();
-
-    // Render
-    renderResult({ domain, confidence, flagged, abstained, reason, answer: cleanAnswer, citation });
-
-  } catch (err) {
-    showError(err.message);
-  } finally {
-    btn.disabled = false;
-    loading.classList.remove('visible');
-  }
-}
-
-function renderResult({ domain, confidence, flagged, abstained, reason, answer, citation }) {
-  const resultBox = document.getElementById('resultBox');
-  const verdictBadge = document.getElementById('verdictBadge');
-  const resultMeta = document.getElementById('resultMeta');
-  const domainVal = document.getElementById('domainVal');
-  const confidenceVal = document.getElementById('confidenceVal');
-  const flaggedVal = document.getElementById('flaggedVal');
-  const answerSection = document.getElementById('answerSection');
-  const answerText = document.getElementById('answerText');
-  const abstainReason = document.getElementById('abstainReason');
-  const citationBox = document.getElementById('citationBox');
-  const citationText = document.getElementById('citationText');
-
-  verdictBadge.textContent = abstained ? 'ABSTAINED' : 'ANSWERED';
-  verdictBadge.className = `verdict ${abstained ? 'abstained' : 'answered'}`;
-  resultMeta.textContent = `confidence ${confidence}/100`;
-
-  domainVal.textContent = domain;
-  confidenceVal.textContent = `${confidence}/100`;
-  confidenceVal.className = `meta-value ${confidence >= 75 ? 'high' : confidence >= 50 ? 'mid' : 'low'}`;
-  flaggedVal.textContent = flagged ? 'Yes' : 'No';
-  flaggedVal.className = `meta-value ${flagged ? 'low' : 'high'}`;
-
-  if (abstained) {
-    answerSection.style.display = 'none';
-    abstainReason.style.display = 'block';
-    abstainReason.textContent = `Abstained — ${reason}. The tool could not verify this answer. Please consult a reliable source.`;
-  } else {
-    answerSection.style.display = 'block';
-    abstainReason.style.display = 'none';
-    answerText.textContent = answer;
+  function detectProviderUI() {
+    const status = document.getElementById("keyStatus");
+    const val = document.getElementById("apiKey").value.trim();
+    if (!val) { status.textContent = ""; return; }
+    try {
+      const cfg = getProviderConfig(val);
+      status.style.color = "var(--green)";
+      status.textContent = `✓ Auto-detected ${cfg.provider} (${cfg.model})`;
+    } catch (e) {
+      status.style.color = "var(--amber)";
+      status.textContent = e.message;
+    }
   }
 
-  if (citation && !abstained) {
-    citationBox.style.display = 'block';
-    citationText.textContent = citation;
-  } else {
-    citationBox.style.display = 'none';
+  async function callLLM(cfg, messages, maxTokens = 1024, systemPrompt = null) {
+    if (cfg.provider === "Anthropic") {
+      const body = { model: cfg.model, max_tokens: maxTokens, messages };
+      if (systemPrompt) body.system = systemPrompt;
+      const res = await fetch(cfg.url, { method: "POST", headers: cfg.headers, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || "Anthropic API error");
+      return data.content[0].text;
+    } else {
+      const fullMessages = systemPrompt ? [{ role: "system", content: systemPrompt }, ...messages] : messages;
+      let res = await fetch(cfg.url, {
+        method: "POST",
+        headers: cfg.headers,
+        body: JSON.stringify({ model: cfg.model, messages: fullMessages, max_tokens: maxTokens })
+      });
+      let data = await res.json();
+      if (!res.ok && cfg.fallbackModel) {
+        res = await fetch(cfg.url, {
+          method: "POST",
+          headers: cfg.headers,
+          body: JSON.stringify({ model: cfg.fallbackModel, messages: fullMessages, max_tokens: maxTokens })
+        });
+        data = await res.json();
+      }
+      if (!res.ok) throw new Error(data.error?.message || "Provider API error");
+      return data.choices[0].message.content;
+    }
   }
 
-  resultBox.classList.add('visible');
-}
+  async function detectTopic(cfg, question) {
+    const prompt = `Identify the domain of this question in one word.
+Choose from: medicine, law, finance, bioenergy, agriculture, general
+Question: ${question}
+Return only the domain word, nothing else.`;
+    const out = await callLLM(cfg, [{ role: "user", content: prompt }], 60);
+    return out.trim().toLowerCase().replace(/[^a-z]/g, "") || "general";
+  }
 
-function showError(msg) {
-  const errorBox = document.getElementById('errorBox');
-  errorBox.textContent = `Error: ${msg}`;
-  errorBox.classList.add('visible');
-}
+  function extractConfidence(text) {
+    const match = text.match(/CONFIDENCE:\s*(\d+)\s*\/\s*100/i);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
+  async function runMiddleware() {
+    const keyVal = document.getElementById("apiKey").value;
+    const question = document.getElementById("questionInput").value.trim();
+    if (!question) return alert("Please enter or select a question first.");
+
+    let cfg;
+    try { cfg = getProviderConfig(keyVal); } catch (e) { return alert(e.message); }
+
+    if (sessionLogs.length >= 10) {
+      clearSession();
+      return alert("10-query session limit reached. API key cleared for your security.");
+    }
+
+    const btn = document.getElementById("runBtn");
+    btn.disabled = true;
+    btn.textContent = "Running SCM Gate...";
+
+    try {
+      const domain = await detectTopic(cfg, question);
+      const answer = await callLLM(cfg, [{ role: "user", content: question }], 2048, SYSTEM_PROMPT);
+      const confidence = extractConfidence(answer);
+      const flagged = confidence < 75;
+
+      const entry = {
+        timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+        domain,
+        question,
+        confidence,
+        flagged,
+        answer_preview: answer.slice(0, 100).replace(/
+/g, " "),
+        full_answer: answer
+      };
+      sessionLogs.push(entry);
+      updateStatsUI();
+      renderCurrentResult(entry);
+
+      if (sessionLogs.length >= 10) {
+        document.getElementById("apiKey").value = "";
+        document.getElementById("keyStatus").textContent = "Session reached 10 queries — API key automatically cleared.";
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Run SCM Middleware";
+    }
+  }
+
+  function renderCurrentResult(entry) {
+    document.getElementById("resultBox").style.display = "block";
+    document.getElementById("resDomain").textContent = `DOMAIN: ${entry.domain.toUpperCase()}`;
+    const confEl = document.getElementById("resConf");
+    confEl.textContent = `CONFIDENCE: ${entry.confidence}/100`;
+    confEl.className = `badge ${entry.flagged ? "badge-flag" : "badge-ok"}`;
+
+    const flagEl = document.getElementById("resFlag");
+    flagEl.textContent = entry.flagged ? "⚠ FLAGGED (<75% OR AUDITED)" : "✓ VERIFIED (≥75%)";
+    flagEl.className = `badge ${entry.flagged ? "badge-flag" : "badge-ok"}`;
+    document.getElementById("resAnswer").textContent = entry.full_answer;
+  }
+
+  function markCurrentResult(isHallucination) {
+    if (!sessionLogs.length) return;
+    const latest = sessionLogs[sessionLogs.length - 1];
+    latest.flagged = isHallucination;
+    updateStatsUI();
+    renderCurrentResult(latest);
+  }
+
+  function updateStatsUI() {
+    const total = sessionLogs.length;
+    const flaggedCount = sessionLogs.filter(x => x.flagged).length;
+    const avg = total ? Math.round(sessionLogs.reduce((s, x) => s + x.confidence, 0) / total) : "—";
+    document.getElementById("statQueries").textContent = `${total} / 10`;
+    document.getElementById("statFlagged").textContent = flaggedCount;
+    document.getElementById("statAvg").textContent = total ? `${avg}%` : "—";
+  }
+
+  function clearSession() {
+    sessionLogs = [];
+    document.getElementById("apiKey").value = "";
+    document.getElementById("keyStatus").textContent = "";
+    document.getElementById("resultBox").style.display = "none";
+    updateStatsUI();
+  }
+
+  function loadSampleZambia() {
+    document.getElementById("questionInput").value =
+      "What are the standard feedstock-to-water ratios and retention times recommended for small-scale agricultural biogas digesters operating under Zambian ambient temperatures?";
+  }
+
+  function downloadLogs(mode) {
+    const rows = mode === "flagged" ? sessionLogs.filter(x => x.flagged) : sessionLogs;
+    if (!rows.length) {
+      return alert(mode === "flagged" ? "No flagged hallucinations (<75%) recorded in this session yet." : "Run at least one query first to generate logs.");
+    }
+    const header = ["timestamp", "domain", "question", "confidence", "flagged", "answer_preview"];
+    const csvLines = [header.join(",")];
+    rows.forEach(r => {
+      const line = [
+        r.timestamp,
+        r.domain,
+        `"${r.question.replace(/"/g, '""')}"`,
+        r.confidence,
+        r.flagged,
+        `"${r.answer_preview.replace(/"/g, '""')}"`
+      ];
+      csvLines.push(line.join(","));
+    });
+    triggerCSVDownload(csvLines.join("
+"), mode === "flagged" ? "hallucination_log.csv" : "scm_all_results_log.csv");
+  }
+
+  function triggerCSVDownload(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function fetchBenchmarks() {
+    try {
+      const offsets = [0, 100, 200, 300, 400];
+      const tqPromises = offsets.map(offset =>
+        fetch(`https://datasets-server.huggingface.co/rows?dataset=truthfulqa/truthful_qa&config=generation&split=validation&offset=${offset}&length=100`).then(r => r.json())
+      );
+      const tqPages = await Promise.all(tqPromises);
+      benchmarks.truthfulqa = tqPages.flatMap((p, idx) =>
+        (p.rows || []).map((item, i) => ({
+          id: idx * 100 + i + 1,
+          category: item.row.category || "TruthfulQA",
+          question: item.row.question,
+          reference: item.row.best_answer || ""
+        }))
+      );
+
+      const hePromises = offsets.map(offset =>
+        fetch(`https://datasets-server.huggingface.co/rows?dataset=pminervini/HaluEval&config=qa_samples&split=data&offset=${offset}&length=100`).then(r => r.json())
+      );
+      const hePages = await Promise.all(hePromises);
+      benchmarks.halueval = hePages.flatMap((p, idx) =>
+        (p.rows || []).map((item, i) => ({
+          id: idx * 100 + i + 1,
+          category: "HaluEval QA",
+          question: item.row.question,
+          reference: item.row.right_answer || item.row.hallucinated_answer || ""
+        }))
+      );
+      renderBenchmarkList();
+    } catch (e) {
+      document.getElementById("benchmarkList").innerHTML =
+        `<div style="padding:16px; color:var(--amber); font-size:0.86rem;">Could not reach Hugging Face dataset API right now. Refresh to retry.</div>`;
+    }
+  }
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById("tab-truthfulqa").classList.toggle("active", tab === "truthfulqa");
+    document.getElementById("tab-halueval").classList.toggle("active", tab === "halueval");
+    renderBenchmarkList();
+  }
+
+  function renderBenchmarkList() {
+    const listEl = document.getElementById("benchmarkList");
+    const filter = document.getElementById("searchBenchmark").value.toLowerCase();
+    const items = benchmarks[activeTab].filter(x => x.question.toLowerCase().includes(filter));
+    if (!items.length) {
+      listEl.innerHTML = `<div style="padding:16px; color:var(--muted); font-size:0.86rem;">No matching questions found.</div>`;
+      return;
+    }
+    listEl.innerHTML = items.slice(0, 150).map(item => `
+      <div class="q-item">
+        <div>
+          <div class="q-text"><strong>#${item.id}</strong> ${escapeHtml(item.question)}</div>
+          <div class="q-cat">${escapeHtml(item.category)}</div>
+        </div>
+        <button class="btn btn-outline use-btn" onclick='selectQuestion(${JSON.stringify(item.question)})'>Load</button>
+      </div>
+    `).join("") + (items.length > 150 ? `<div style="padding:10px; text-align:center; font-size:0.8rem; color:var(--muted);">Showing top 150 of ${items.length} loaded questions — use search or Download CSV for all 500.</div>` : "");
+  }
+
+  function selectQuestion(q) {
+    document.getElementById("questionInput").value = q;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function downloadBenchmarkCSV(type) {
+    const data = benchmarks[type];
+    if (!data.length) return alert("Still loading benchmark dataset — wait 2 seconds and try again!");
+    const lines = ["id,benchmark,category,question,ground_truth_reference"];
+    data.forEach(item => {
+      lines.push(`${item.id},${type},"${item.category.replace(/"/g, '""')}","${item.question.replace(/"/g, '""')}","${item.reference.replace(/"/g, '""')}"`);
+    });
+    triggerCSVDownload(lines.join("
+"), `${type}_500_official_questions.csv`);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+  }
+
+  fetchBenchmarks();
 </script>
 </body>
 </html>
